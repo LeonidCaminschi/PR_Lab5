@@ -1,6 +1,7 @@
 import socket
 import threading
 import json
+import base64
 
 # Server configuration
 HOST = '127.0.0.1'  # Server's IP address
@@ -22,6 +23,14 @@ def receive_messages():
             break  # Exit the loop when the server disconnects
         if message['type'] == "message":
             print("\n" + message['payload']['sender'] + ": " + message['payload']['text'])
+        if message['type'] == "file":
+            file_name = message['payload']['file_name']
+            file_data_base64 = message['payload']['file_data']
+            file_data = base64.b64decode(file_data_base64.encode('utf-8'))
+
+            # Save the file on the client-side, for example:
+            with open(file_name, 'wb') as file:
+                file.write(file_data)
 
 
 # Start the message reception thread
@@ -57,17 +66,36 @@ while True:
             if message.lower() == 'disconnect':
                 break
 
-            message_json = {
-                "type": "message",
-                "payload": {
-                    "sender": f"{username}",
-                    "room": f"{roomname}",
-                    "text": f"{message}"
+            if message.lower() == 'upload':
+                file_path = input("Enter the path to the file you want to upload: ")
+                upload_command = {
+                    "type": "upload",
+                    "payload": {
+                        "file_path": file_path
+                    }
                 }
-            }
+                client_socket.send(json.dumps(upload_command).encode('utf-8'))
+            elif message.lower() == 'download':
+                file_name = input("Enter the name of the file you want to download: ")
+                download_command = {
+                    "type": "download",
+                    "payload": {
+                        "file_name": file_name
+                    }
+                }
+                client_socket.send(json.dumps(download_command).encode('utf-8'))
+            else:
+                message_json = {
+                    "type": "message",
+                    "payload": {
+                        "sender": f"{username}",
+                        "room": f"{roomname}",
+                        "text": f"{message}"
+                    }
+                }
 
-            # Send the message to the server
-            client_socket.send(json.dumps(message_json).encode('utf-8'))
+                # Send the message to the server
+                client_socket.send(json.dumps(message_json).encode('utf-8'))
 
 # Close the client socket when done
 client_socket.close()
