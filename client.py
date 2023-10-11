@@ -18,19 +18,29 @@ print(f"Connected to {HOST}:{PORT}")
 # Function to receive and display messages
 def receive_messages():
     while True:
-        message = json.loads(client_socket.recv(1024).decode('utf-8'))
-        if not message:
+        data = client_socket.recv(1024)
+        if not data:
             break  # Exit the loop when the server disconnects
-        if message['type'] == "message":
-            print("\n" + message['payload']['sender'] + ": " + message['payload']['text'])
-        if message['type'] == "file":
-            file_name = message['payload']['file_name']
-            file_data_base64 = message['payload']['file_data']
-            file_data = base64.b64decode(file_data_base64.encode('utf-8'))
 
-            # Save the file on the client-side, for example:
+        try:
+            message = json.loads(data.decode('utf-8'))
+
+            # Handle JSON messages
+            if message['type'] == "message":
+                print("\n" + message['payload']['sender'] + ": " + message['payload']['text'])
+            if message['type'] == "file":
+                file_name = message['payload']['file_name']
+                file_data_base64 = message['payload']['file_data']
+                file_data = base64.b64decode(file_data_base64.encode('utf-8'))
+
+                # Save the file on the client-side, for example:
+                with open(file_name, 'wb') as file:
+                    file.write(file_data)
+        except json.JSONDecodeError:
+            file_name = "image.png"  # Set the desired file name and extension
             with open(file_name, 'wb') as file:
-                file.write(file_data)
+                file.write(data)
+            print(f"Downloaded file: {file_name}")
 
 
 # Start the message reception thread
