@@ -21,7 +21,7 @@ def receive_messages():
         if not message:
             break  # Exit the loop when the server disconnects
         if message['type'] == "message":
-            print(message['payload']['sender'] + ": " + message['payload']['text'])
+            print("\n" + message['payload']['sender'] + ": " + message['payload']['text'])
 
 
 # Start the message reception thread

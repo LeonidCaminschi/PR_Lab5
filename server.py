@@ -33,26 +33,27 @@ def handle_client(client_socket, client_address, room):
             break  # Exit the loop when the client disconnects
         print(f"Received from {client_address}: {message}")
 
-        # Broadcast the message to all clients
-        for client in clients:
-            for aaa in rooms:
-                if client != client_socket and aaa != current_room:
-                    client.send(json.dumps(message).encode('utf-8'))
+        # Broadcast the message to all clients in the same room
+        for client in rooms.get(room, []):
+            if client != client_socket:
+                client.send(json.dumps(message).encode('utf-8'))
 
-    # Remove the client from the list
-    clients.remove(client_socket)
+        # Remove the client from the list associated with the room
+    rooms[room].remove(client_socket)
     client_socket.close()
 
 clients = []
-rooms = []
+rooms = {}
 
 while True:
     client_socket, client_address = server_socket.accept()
     connection = json.loads(client_socket.recv(1024).decode('utf-8'))
     if connection:
         client_socket.send(json.dumps(ack_json).encode('utf-8'))
+        current_room = connection['payload']['room']
         clients.append(client_socket)
-        current_room = rooms.append(connection['payload']['room'])
+        # Create the room list if it doesn't exist
+        rooms.setdefault(current_room, []).append(client_socket)
 
     # Start a thread to handle the client
     client_thread = threading.Thread(target=handle_client, args=(client_socket, client_address, current_room))
